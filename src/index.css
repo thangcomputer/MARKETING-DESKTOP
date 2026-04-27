@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── DARK MODE (default) ── */
+  :root {
+    --background: 240 10% 5%;
+    --foreground: 240 10% 94%;
+    --card: 240 10% 8%;
+    --card-foreground: 240 10% 94%;
+    --popover: 240 10% 10%;
+    --popover-foreground: 240 10% 94%;
+    --primary: 252 100% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 12%;
+    --secondary-foreground: 240 10% 94%;
+    --muted: 240 10% 14%;
+    --muted-foreground: 240 10% 58%;
+    --accent: 252 100% 63%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 14 65% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 14%;
+    --input: 240 10% 16%;
+    --ring: 252 100% 63%;
+    --radius: 0.625rem;
+    --sidebar: 240 12% 6%;
+    --sidebar-foreground: 240 10% 94%;
+    --sidebar-accent: 252 100% 63%;
+  }
+
+  /* ── LIGHT MODE ── */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    --primary: 252 100% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 6% 93%;
+    --secondary-foreground: 240 10% 20%;
+    --muted: 240 6% 93%;
+    --muted-foreground: 240 5% 46%;
+    --accent: 252 100% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 88%;
+    --input: 240 6% 88%;
+    --ring: 252 100% 55%;
+    --radius: 0.625rem;
+    --sidebar: 240 6% 96%;
+    --sidebar-foreground: 240 10% 10%;
+    --sidebar-accent: 252 100% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Custom scrollbar — dark */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
+}
+
+@layer components {
+  .drag-region { -webkit-app-region: drag; }
+  .no-drag { -webkit-app-region: no-drag; }
+
+  /* Platform badge colors */
+  .platform-facebook {
+    background-color: rgba(24, 119, 242, 0.12);
+    color: #1877f2;
+    border-color: rgba(24, 119, 242, 0.25);
+  }
+  .platform-zalo {
+    background-color: rgba(0, 104, 255, 0.12);
+    color: #0068ff;
+    border-color: rgba(0, 104, 255, 0.25);
+  }
+  .platform-tiktok {
+    background-color: rgba(255, 0, 80, 0.12);
+    color: #ff0050;
+    border-color: rgba(255, 0, 80, 0.25);
+  }
+
+  /* Glass card */
+  .glass-card { @apply bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl; }
+
+  /* Message bubbles */
+  .bubble-inbound { @apply bg-secondary text-foreground rounded-2xl rounded-bl-sm; }
+  .bubble-outbound { @apply bg-primary text-primary-foreground rounded-2xl rounded-br-sm; }
+
+  /* Sidebar item */
+  .sidebar-item {
+    @apply flex items-center justify-center w-11 h-11 rounded-xl text-muted-foreground 
+           hover:text-foreground hover:bg-secondary transition-all duration-200 cursor-pointer relative;
+  }
+  .sidebar-item.active {
+    @apply text-primary bg-primary/10;
+  }
+  .sidebar-item.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full;
+    box-shadow: 0 0 8px hsl(252 100% 63% / 0.5);
+  }
+
+  /* Status dot */
+  .status-online { @apply bg-success; }
+  .status-offline { @apply bg-muted-foreground/30; }
+
+  /* Quick Reply popup */
+  .quick-reply-popup {
+    @apply absolute bottom-full left-0 right-0 mb-2 bg-popover border border-border rounded-xl
+           shadow-2xl overflow-hidden animate-scale-in z-50;
+  }
+  .quick-reply-item {
+    @apply flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/60 cursor-pointer transition-colors;
+  }
+  .quick-reply-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+
+  /* Tag badge */
+  .tag-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium
+           bg-primary/10 text-primary border border-primary/20
+           hover:bg-primary/15 transition-colors cursor-default;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400;
+  }
+}
