@@ -35,6 +35,7 @@ const channelsRouter = require('./routes/channels');
 const conversationsRouter = require('./routes/conversations');
 const usersRouter = require('./routes/users');
 const webhookRouter = require('./routes/webhook');
+const { router: oauthCallbackRouter } = require('./routes/oauth-callback');
 
 const PORT = process.env.API_PORT || 3777;
 
@@ -60,15 +61,17 @@ function buildApp() {
     crossOriginEmbedderPolicy: false, // allow Electron renderer
   }));
 
-  // CORS — only allow requests from our Vite dev server or the file:// origin (built Electron)
+  // CORS — allow Electron app, dev server, and VPS domain
   app.use(cors({
     origin: (origin, callback) => {
       const allowed = [
         'http://localhost:5173',
         'http://localhost:5174',
         'http://127.0.0.1:5173',
+        'https://omni.giasutinhoc24h.com',
+        'http://omni.giasutinhoc24h.com',
       ];
-      // Allow Electron file:// origin (no origin header) and localhost
+      // Allow Electron file:// origin (no origin header) and listed origins
       if (!origin || allowed.includes(origin)) {
         callback(null, true);
       } else {
@@ -128,6 +131,9 @@ function buildApp() {
   app.use('/api/conversations', express.json(), apiLimiter,     conversationsRouter);
   app.use('/api/users',         express.json(), apiLimiter,     usersRouter);
   app.use('/api/webhook',       webhookLimiter,                 webhookRouter);
+
+  // ── OAuth callback (VPS-hosted — TikTok/Facebook require HTTPS public domain)
+  app.use('/oauth',             apiLimiter,                     oauthCallbackRouter);
 
   // ── Health check ─────────────────────────────────────────────
   app.get('/health', (_req, res) => res.json({
