@@ -49,12 +49,16 @@ function createWindow() {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self' http://127.0.0.1:3777;"
+          // Allow self + VPS backend (production) + localhost (dev)
+          "default-src 'self' https://omni.giasutinhoc24h.com http://127.0.0.1:3777;"
           + " script-src 'self' 'unsafe-inline';"
           + " style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
           + " font-src 'self' https://fonts.gstatic.com;"
-          + " img-src 'self' data: blob: https://img.vietqr.io;"
-          + " connect-src 'self' http://127.0.0.1:3777 ws://127.0.0.1:3777;"
+          + " img-src 'self' data: blob: https://img.vietqr.io https://ui-avatars.com https://graph.facebook.com;"
+          + " connect-src 'self'"
+          + "   https://omni.giasutinhoc24h.com wss://omni.giasutinhoc24h.com"
+          + "   http://127.0.0.1:3777 ws://127.0.0.1:3777"
+          + "   https://graph.facebook.com https://open.tiktokapis.com;"
           + " object-src 'none';"
           + " frame-ancestors 'none';",
         ],
@@ -71,6 +75,7 @@ function createWindow() {
       'http://localhost:5173',
       'http://localhost:5174',
       'http://127.0.0.1:3777',
+      'https://omni.giasutinhoc24h.com',
     ];
     const isAllowed = ALLOWED_ORIGINS.some(o => url.startsWith(o)) || url.startsWith('file://');
     if (!isAllowed) {
