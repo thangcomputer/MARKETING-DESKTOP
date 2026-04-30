@@ -134,6 +134,7 @@ export const useInboxStore = create((set, get) => ({
       status: 'sent',
     };
 
+    // ── Facebook Send ──────────────────────────────────────────
     if (conversation?.platform === 'facebook' && conversation?.accessToken) {
       try {
         await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${conversation.accessToken}`, {
@@ -146,6 +147,27 @@ export const useInboxStore = create((set, get) => ({
         });
       } catch (err) {
         console.error('FB Send failed', err);
+        newMessage.status = 'failed';
+        newMessage.content += ' ⚠️ Lỗi khi gửi!';
+      }
+    }
+
+    // ── Zalo Send (Customer Support API) ──────────────────────────
+    if (conversation?.platform === 'zalo' && conversation?.accessToken) {
+      try {
+        await fetch('https://openapi.zalo.me/v3.0/oa/message/cs', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'access_token': conversation.accessToken 
+          },
+          body: JSON.stringify({
+            recipient: { user_id: conversation.externalId },
+            message: { text: content.trim() }
+          })
+        });
+      } catch (err) {
+        console.error('Zalo Send failed', err);
         newMessage.status = 'failed';
         newMessage.content += ' ⚠️ Lỗi khi gửi!';
       }
@@ -329,5 +351,57 @@ export const useInboxStore = create((set, get) => ({
     if (active && allMessagesMap[active]) {
        set({ messages: mockMessages[active] });
     }
+  },
+
+  // Real-time Zalo Fetch via Thick Client
+  fetchZaloInbox: async () => {
+    const settings = useSettingsStore.getState();
+    const zaloCreds = settings.credentials.filter(c => c.platform === 'zalo' && c.isActive && c.accessToken);
+    if (!zaloCreds.length) return;
+
+    let allConversations = [];
+
+    for (const cred of zaloCreds) {
+      try {
+        const queryData = JSON.stringify({ offset: 0, count: 50 });
+        const res = await fetch(`https://openapi.zalo.me/v2.0/oa/getlistrecentchat?data=${encodeURIComponent(queryData)}&access_token=${cred.accessToken}`);
+        const data = await res.json();
+        
+        if (data.data) {
+          data.data.forEach(zConv => {
+            const customerName = zConv.src === 1 ? 'Người dùng Zalo' : zConv.name || 'Người dùng Zalo';
+            const userId = zConv.user_id;
+
+            const convObj = {
+              id: `zalo-${userId}`,
+              credentialId: cred.id,
+              platform: 'zalo',
+              externalId: userId,
+              type: 'message',
+              participantName: customerName,
+              participantAvatar: zConv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=2563eb&color=fff`,
+              tags: [],
+              notes: '',
+              lastMessage: zConv.message || '',
+              lastMessageAt: new Date(zConv.time).toISOString(),
+              unreadCount: 0,
+              isArchived: false,
+              accessToken: cred.accessToken
+            };
+            allConversations.push(convObj);
+            
+            // Note: Zalo getlistrecentchat doesn't return full message history. 
+            // We would need to call getconversation for each if we want full history on first load.
+          });
+        }
+      } catch (err) {
+         console.error('[Inbox] Zalo Sync Error', err);
+      }
+    }
+    
+    // Merge conversations
+    const oldConvs = get().conversations.filter(c => c.platform !== 'zalo');
+    const mergedConvs = [...oldConvs, ...allConversations].sort((a,b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()).reverse();
+    set({ conversations: mergedConvs });
   },
 }));

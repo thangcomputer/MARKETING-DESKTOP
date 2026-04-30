@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/useSettingsStore';
 import { Button } from '@/components/ui/button';
@@ -591,18 +592,35 @@ function PlatformSettingsCard({ platform, config, credential, testResult, onSave
         if (!result.success) throw new Error(result.error);
         tokenData = result.data;
       } else {
-        // Dev mode: giả lập token
-        await new Promise(r => setTimeout(r, 1500));
-        tokenData = {
-          accessToken: 'mock-access-token-' + Date.now(),
-          refreshToken: 'mock-refresh-token',
-          pages: platform === 'facebook' ? [
-            { id: '111111111', name: 'Test Page 1', access_token: 'page-token-1' },
-            { id: '222222222', name: 'Test Page 2', access_token: 'page-token-2' },
-          ] : [],
-          channelId: platform === 'google' ? 'UC_mock_channel_id' : '',
-          openId: platform === 'tiktok' ? 'tiktok_open_id_mock' : '',
-        };
+        // ── Web Mode: Use Server-side OAuth + Polling ──────────
+        const state = `web_${platform}_${Date.now()}`;
+        const initRes = await api.post('/oauth/initiate', { platform, clientKey: appKeys.clientKey || appKeys.appId, clientSecret: appKeys.clientSecret, state });
+        
+        if (!initRes.data?.authUrl) throw new Error('Không thể khởi tạo luồng đăng nhập.');
+
+        // Open login window
+        const authWindow = window.open(initRes.data.authUrl, 'OmniAuth', 'width=600,height=700');
+        
+        // Poll for result
+        let attempts = 0;
+        const maxAttempts = 60; // 5 minutes
+        
+        while (attempts < maxAttempts) {
+          await new Promise(r => setTimeout(r, 5000)); // check every 5s
+          attempts++;
+          
+          if (authWindow?.closed && attempts < 2) continue; // window closed early?
+
+          const res = await api.get(`/oauth/result/${state}`);
+          if (res.data?.success) {
+            tokenData = res.data.data;
+            if (authWindow) authWindow.close();
+            break;
+          }
+          if (res.data?.error) throw new Error(res.data.error);
+        }
+
+        if (!tokenData) throw new Error('Hết thời gian chờ đăng nhập. Vui lòng thử lại.');
       }
 
       // Facebook có nhiều Pages → hiển bộ lấy Page

@@ -19,14 +19,19 @@ export default function InboxPage() {
   const { socket, isConnected } = useSocket(currentUserId);
   const addIncomingMessage = useInboxStore((state) => state.addIncomingMessage);
   const fetchFacebookInbox = useInboxStore((state) => state.fetchFacebookInbox);
+  const fetchZaloInbox = useInboxStore((state) => state.fetchZaloInbox);
 
-  // Sync Facebook API directly (Thick Client Mode)
+  // Sync Facebook & Zalo API directly (Thick Client Mode)
   useEffect(() => {
     fetchFacebookInbox();
-    // Auto-refresh every 10 seconds to simulate real-time without wait for backend webhook
-    const interval = setInterval(fetchFacebookInbox, 10000);
+    fetchZaloInbox();
+    // Auto-refresh every 10 seconds to simulate real-time
+    const interval = setInterval(() => {
+      fetchFacebookInbox();
+      fetchZaloInbox();
+    }, 10000);
     return () => clearInterval(interval);
-  }, [fetchFacebookInbox]);
+  }, [fetchFacebookInbox, fetchZaloInbox]);
 
   useEffect(() => {
     if (!socket) return;
