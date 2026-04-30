@@ -99,6 +99,7 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<InboxPage />} />
+          <Route path="/inbox" element={<InboxPage />} />
           <Route path="/campaigns" element={<SchedulerPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
