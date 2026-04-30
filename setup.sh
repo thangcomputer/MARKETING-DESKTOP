@@ -185,18 +185,25 @@ EOF
 ok "File .env đã tạo: $ENV_FILE"
 
 # ════════════════════════════════════════════════════════
-# BƯỚC 7: CÀI NPM PACKAGES
+# BƯỚC 7: CÀI NPM PACKAGES & BUILD FRONTEND
 # ════════════════════════════════════════════════════════
 sep
-echo -e "${BOLD} BƯỚC 7: CÀI NPM PACKAGES${NC}\n"
+echo -e "${BOLD} BƯỚC 7: CÀI NPM PACKAGES & BUILD FRONTEND${NC}\n"
 cd "$APP_DIR"
-info "Cài dependencies (bỏ qua Electron, devDependencies)..."
-npm install --omit=dev --ignore-scripts 2>&1 | tail -3
+
+info "Cài tất cả dependencies để build..."
+npm install --ignore-scripts 2>&1 | tail -3
+
+info "Build React Frontend..."
+npm run build:react 2>&1 | tail -3
+
+info "Dọn dẹp devDependencies..."
+npm prune --omit=dev --silent
 
 info "Build better-sqlite3 từ source (native addon)..."
 npm install better-sqlite3 --build-from-source 2>&1 | tail -3
 
-ok "Npm packages đã cài xong"
+ok "Frontend đã build và packages đã tối ưu xong"
 
 # ════════════════════════════════════════════════════════
 # BƯỚC 8: PRISMA GENERATE + MIGRATE
@@ -272,35 +279,49 @@ NGINX_CONF="/etc/nginx/sites-available/omni-backend"
 
 cat > "$NGINX_CONF" << EOF
 # Omni Social Backend — Nginx Config
-# Domain: $DOMAIN → Port $API_PORT
+# Domain: $DOMAIN → UI (dist) + API ($API_PORT)
 # Tạo bởi setup.sh
 
 server {
     listen 80;
     server_name $DOMAIN;
 
+    # Root directory for the React frontend
+    root $APP_DIR/dist;
+    index index.html;
+
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
 
-    # Reverse Proxy → Node.js backend
+    # Frontend Routing (React Router)
     location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Reverse Proxy to Node.js backend (API, OAuth, Health)
+    location ~ ^/(api|oauth|health) {
         proxy_pass         http://127.0.0.1:$API_PORT;
         proxy_http_version 1.1;
         proxy_set_header   Host              \$host;
         proxy_set_header   X-Real-IP         \$remote_addr;
         proxy_set_header   X-Forwarded-For   \$proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto \$scheme;
+    }
 
-        # WebSocket (Socket.io)
+    # WebSocket (Socket.io)
+    location /socket.io/ {
+        proxy_pass         http://127.0.0.1:$API_PORT;
+        proxy_http_version 1.1;
         proxy_set_header   Upgrade    \$http_upgrade;
         proxy_set_header   Connection "upgrade";
-        proxy_read_timeout 86400;
-
-        # Webhook payloads (hình ảnh, video)
-        client_max_body_size 50M;
+        proxy_set_header   Host       \$host;
+        proxy_cache_bypass \$http_upgrade;
     }
+
+    # Webhook payloads (hình ảnh, video)
+    client_max_body_size 50M;
 }
 EOF
 
