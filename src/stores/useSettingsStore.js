@@ -134,7 +134,8 @@ export const useSettingsStore = create(
     quickReplies: state.quickReplies,
     bankInfo: state.bankInfo,
     staffList: state.staffList,
-    // Không lưu: testResults, isLoading, currentUser (phải đăng nhập lại)
+    currentUser: state.currentUser,
+    // Không lưu: testResults, isLoading
   }),
 }
 )

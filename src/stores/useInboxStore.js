@@ -137,7 +137,7 @@ export const useInboxStore = create((set, get) => ({
     // ── Facebook Send ──────────────────────────────────────────
     if (conversation?.platform === 'facebook' && conversation?.accessToken) {
       try {
-        await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${conversation.accessToken}`, {
+        const res = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${conversation.accessToken}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -145,17 +145,21 @@ export const useInboxStore = create((set, get) => ({
             message: { text: content.trim() }
           })
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error?.message || 'Lỗi Facebook API');
+        }
       } catch (err) {
         console.error('FB Send failed', err);
         newMessage.status = 'failed';
-        newMessage.content += ' ⚠️ Lỗi khi gửi!';
+        newMessage.content += ` ⚠️ Lỗi khi gửi: ${err.message}`;
       }
     }
 
     // ── Zalo Send (Customer Support API) ──────────────────────────
     if (conversation?.platform === 'zalo' && conversation?.accessToken) {
       try {
-        await fetch('https://openapi.zalo.me/v3.0/oa/message/cs', {
+        const res = await fetch('https://openapi.zalo.me/v3.0/oa/message/cs', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -166,10 +170,14 @@ export const useInboxStore = create((set, get) => ({
             message: { text: content.trim() }
           })
         });
+        const data = await res.json().catch(() => ({}));
+        if (data.error && data.error !== 0) {
+          throw new Error(data.message || 'Lỗi Zalo API');
+        }
       } catch (err) {
         console.error('Zalo Send failed', err);
         newMessage.status = 'failed';
-        newMessage.content += ' ⚠️ Lỗi khi gửi!';
+        newMessage.content += ` ⚠️ Lỗi khi gửi: ${err.message}`;
       }
     }
 
